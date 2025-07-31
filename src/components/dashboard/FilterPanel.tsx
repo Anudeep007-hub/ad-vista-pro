@@ -16,8 +16,11 @@ import { ExportService } from "@/services/exportService";
 
 interface FilterPanelProps {
   onFiltersChange: (filters: FilterState) => void;
-  onExportPDF: () => void;
-  onExportMetricsCSV: () => void;
+  onExportPDF?: () => void;
+  onExportMetricsCSV?: () => void;
+  availableClients?: string[];
+  availableStatuses?: string[];
+  initialDateRange?: { from: string; to: string };
 }
 
 export interface FilterState {
@@ -33,12 +36,21 @@ export interface FilterState {
   };
 }
 
-export function FilterPanel({ onFiltersChange, onExportPDF, onExportMetricsCSV }: FilterPanelProps) {
+export function FilterPanel({ 
+  onFiltersChange, 
+  onExportPDF, 
+  onExportMetricsCSV,
+  availableClients = ['TechCorp', 'Fashion Plus', 'FoodieApp', 'TravelMax', 'HealthyLife', 'AutoDeals'],
+  availableStatuses = ['active', 'paused', 'completed'],
+  initialDateRange
+}: FilterPanelProps) {
+  const defaultDateRange = initialDateRange || {
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    to: new Date().toISOString().split('T')[0]
+  };
+
   const [filters, setFilters] = useState<FilterState>({
-    dateRange: {
-      from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      to: new Date().toISOString().split('T')[0]
-    },
+    dateRange: defaultDateRange,
     clients: [],
     status: [],
     budgetRange: {
@@ -48,9 +60,6 @@ export function FilterPanel({ onFiltersChange, onExportPDF, onExportMetricsCSV }
   });
 
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-
-  const clients = ['TechCorp', 'Fashion Plus', 'FoodieApp', 'TravelMax', 'HealthyLife', 'AutoDeals'];
-  const statuses = ['active', 'paused', 'completed'];
 
   const updateFilters = (newFilters: Partial<FilterState>) => {
     const updated = { ...filters, ...newFilters };
@@ -79,10 +88,7 @@ export function FilterPanel({ onFiltersChange, onExportPDF, onExportMetricsCSV }
 
   const clearFilters = () => {
     const resetFilters = {
-      dateRange: {
-        from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        to: new Date().toISOString().split('T')[0]
-      },
+      dateRange: defaultDateRange,
       clients: [],
       status: [],
       budgetRange: {
@@ -179,7 +185,7 @@ export function FilterPanel({ onFiltersChange, onExportPDF, onExportMetricsCSV }
               <SelectValue placeholder="Add client filter" />
             </SelectTrigger>
             <SelectContent>
-              {clients.filter(c => !filters.clients.includes(c)).map(client => (
+              {availableClients.filter(c => !filters.clients.includes(c)).map(client => (
                 <SelectItem key={client} value={client}>{client}</SelectItem>
               ))}
             </SelectContent>
@@ -211,7 +217,7 @@ export function FilterPanel({ onFiltersChange, onExportPDF, onExportMetricsCSV }
               <SelectValue placeholder="Add status filter" />
             </SelectTrigger>
             <SelectContent>
-              {statuses.filter(s => !filters.status.includes(s)).map(status => (
+              {availableStatuses.filter(s => !filters.status.includes(s)).map(status => (
                 <SelectItem key={status} value={status}>
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </SelectItem>
@@ -283,19 +289,25 @@ export function FilterPanel({ onFiltersChange, onExportPDF, onExportMetricsCSV }
         )}
 
         {/* Export Actions */}
-        <div className="space-y-2 pt-4 border-t">
-          <Label className="text-sm font-medium">Export Data</Label>
-          <div className="grid grid-cols-1 gap-2">
-            <Button variant="outline" size="sm" onClick={onExportPDF} className="justify-start gap-2">
-              <Download className="h-4 w-4" />
-              Export Dashboard PDF
-            </Button>
-            <Button variant="outline" size="sm" onClick={onExportMetricsCSV} className="justify-start gap-2">
-              <Download className="h-4 w-4" />
-              Export Metrics CSV
-            </Button>
+        {(onExportPDF || onExportMetricsCSV) && (
+          <div className="space-y-2 pt-4 border-t">
+            <Label className="text-sm font-medium">Export Data</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {onExportPDF && (
+                <Button variant="outline" size="sm" onClick={onExportPDF} className="justify-start gap-2">
+                  <Download className="h-4 w-4" />
+                  Export Dashboard PDF
+                </Button>
+              )}
+              {onExportMetricsCSV && (
+                <Button variant="outline" size="sm" onClick={onExportMetricsCSV} className="justify-start gap-2">
+                  <Download className="h-4 w-4" />
+                  Export Metrics CSV
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

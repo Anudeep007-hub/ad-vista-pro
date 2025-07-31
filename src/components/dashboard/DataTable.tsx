@@ -35,18 +35,20 @@ import { cn } from "@/lib/utils";
 interface DataTableProps {
   data: CampaignData[];
   title?: string;
+  pageSize?: number;
+  onExport?: () => void;
 }
 
 type SortKey = keyof CampaignData;
 type SortDirection = 'asc' | 'desc' | null;
 
-export function DataTable({ data, title = "Campaign Performance" }: DataTableProps) {
+export function DataTable({ data, title = "Campaign Performance", pageSize = 10, onExport }: DataTableProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('budget');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = pageSize;
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -135,6 +137,7 @@ export function DataTable({ data, title = "Campaign Performance" }: DataTablePro
 
   const handleExportCSV = () => {
     ExportService.exportToCSV(filteredAndSortedData, 'campaign-data.csv');
+    onExport?.();
   };
 
   return (
@@ -172,92 +175,103 @@ export function DataTable({ data, title = "Campaign Performance" }: DataTablePro
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border rounded-lg">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50">
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer hover:bg-muted transition-colors min-w-[200px]"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center space-x-2">
-                    <span>Campaign</span>
+                    <span className="font-semibold">Campaign</span>
                     {getSortIcon('name')}
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer hover:bg-muted transition-colors hidden sm:table-cell min-w-[120px]"
                   onClick={() => handleSort('client')}
                 >
                   <div className="flex items-center space-x-2">
-                    <span>Client</span>
+                    <span className="font-semibold">Client</span>
                     {getSortIcon('client')}
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                  className="cursor-pointer hover:bg-muted transition-colors text-right min-w-[100px]"
                   onClick={() => handleSort('budget')}
                 >
                   <div className="flex items-center justify-end space-x-2">
-                    <span>Budget</span>
+                    <span className="font-semibold">Budget</span>
                     {getSortIcon('budget')}
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                  className="cursor-pointer hover:bg-muted transition-colors text-right hidden md:table-cell min-w-[100px]"
                   onClick={() => handleSort('spent')}
                 >
                   <div className="flex items-center justify-end space-x-2">
-                    <span>Spent</span>
+                    <span className="font-semibold">Spent</span>
                     {getSortIcon('spent')}
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                  className="cursor-pointer hover:bg-muted transition-colors text-right hidden lg:table-cell min-w-[100px]"
                   onClick={() => handleSort('conversions')}
                 >
                   <div className="flex items-center justify-end space-x-2">
-                    <span>Conversions</span>
+                    <span className="font-semibold">Conversions</span>
                     {getSortIcon('conversions')}
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                  className="cursor-pointer hover:bg-muted transition-colors text-right hidden xl:table-cell min-w-[80px]"
                   onClick={() => handleSort('ctr')}
                 >
                   <div className="flex items-center justify-end space-x-2">
-                    <span>CTR</span>
+                    <span className="font-semibold">CTR</span>
                     {getSortIcon('ctr')}
                   </div>
                 </TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="min-w-[100px]">
+                  <span className="font-semibold">Status</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.map((campaign) => (
-                <TableRow key={campaign.id} className="hover:bg-muted/50 transition-colors">
+                <TableRow key={campaign.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium">
-                    <div>
-                      <div className="font-semibold text-sm">{campaign.name}</div>
-                      <div className="text-xs text-muted-foreground">{campaign.id}</div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-sm truncate">{campaign.name}</div>
+                      <div className="text-xs text-muted-foreground truncate sm:hidden">
+                        {campaign.client}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono">{campaign.id}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{campaign.client}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{campaign.client}</TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatCurrency(campaign.budget)}
+                    <div className="font-semibold">{formatCurrency(campaign.budget)}</div>
+                    <div className="text-xs text-muted-foreground md:hidden">
+                      Spent: {formatCurrency(campaign.spent)}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right font-mono hidden md:table-cell">
                     <div>
-                      <div>{formatCurrency(campaign.spent)}</div>
+                      <div className="font-semibold">{formatCurrency(campaign.spent)}</div>
                       <div className="text-xs text-muted-foreground">
                         {formatPercentage((campaign.spent / campaign.budget) * 100)} of budget
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {campaign.conversions.toLocaleString()}
+                  <TableCell className="text-right font-mono hidden lg:table-cell">
+                    <div className="font-semibold">{campaign.conversions.toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground xl:hidden">
+                      CTR: {formatPercentage(campaign.ctr)}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right font-mono hidden xl:table-cell font-semibold">
                     {formatPercentage(campaign.ctr)}
                   </TableCell>
                   <TableCell>

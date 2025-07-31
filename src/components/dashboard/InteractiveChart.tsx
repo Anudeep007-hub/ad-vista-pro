@@ -1,10 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { ChartDataPoint } from "@/services/mockData";
+import { Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type ChartType = 'line' | 'area' | 'bar' | 'pie';
 
@@ -15,6 +18,7 @@ interface InteractiveChartProps {
   dataKeys?: string[];
   colors?: string[];
   height?: number;
+  onExport?: () => void;
 }
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--warning))', 'hsl(var(--info))', 'hsl(var(--danger))'];
@@ -25,8 +29,10 @@ export function InteractiveChart({
   type, 
   dataKeys = ['value'], 
   colors = COLORS,
-  height = 320 
+  height = 320,
+  onExport
 }: InteractiveChartProps) {
+  const { toast } = useToast();
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -50,6 +56,35 @@ export function InteractiveChart({
       );
     }
     return null;
+  };
+
+  const handleExport = () => {
+    const headers = ['name', ...dataKeys].join(',');
+    const csvData = [
+      headers,
+      ...data.map(item => [
+        `"${item.name}"`,
+        ...dataKeys.map(key => item[key as keyof ChartDataPoint] || 0)
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.toLowerCase().replace(/\s+/g, '-')}-chart-data.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Successful",
+      description: `${title} chart data exported as CSV`,
+      duration: 2000,
+    });
+    
+    onExport?.();
   };
 
   const renderChart = () => {
@@ -181,9 +216,20 @@ export function InteractiveChart({
     <Card className="col-span-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-        <Badge variant="secondary" className="text-xs">
-          {type.charAt(0).toUpperCase() + type.slice(1)} Chart
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExport}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export Data
+          </Button>
+          <Badge variant="secondary" className="text-xs">
+            {type.charAt(0).toUpperCase() + type.slice(1)} Chart
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
